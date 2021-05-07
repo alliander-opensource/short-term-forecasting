@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-
+import structlog
 import joblib
 import pandas as pd
 
@@ -13,6 +13,14 @@ from openstf.model.confidence_interval_applicator import ConfidenceIntervalAppli
 MODEL_LOCATION = Path('.')
 
 def predict_pipeline(pj):
+
+    logger = structlog.get_logger(__name__)
+    logger.info(
+        "Start making prediction",
+        prediction_id=pj["id"],
+        customer_name=pj["name"],
+        prediction_type="prediction",
+    )
 
     # Get input data
     forecast_start, forecast_end = generate_forecast_datetime_range(
@@ -46,7 +54,7 @@ def predict_pipeline(pj):
 
     # Check if sufficient data is left after cleaning
     if not is_data_sufficient(data_with_features):
-        print('Use fallback model')
+        logger.warning('Use fallback model')
 
     # Predict
     forecast_input_data = data_with_features[forecast_start:forecast_end]

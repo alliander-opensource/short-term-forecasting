@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-
+import structlog
 import joblib
 from ktpbase.database import DataBase
 from openstf.feature_engineering.feature_applicator import TrainFeatureApplicator
@@ -22,6 +22,14 @@ OLD_MODEL_PATH = '.'
 
 def train_model_pipeline(pj: dict, check_old_model_age: bool = True,
                          compare_to_old: bool = True) -> None:
+
+    logger = structlog.get_logger(__name__)
+    logger.info(
+        "Start training model",
+        prediction_id=pj["id"],
+        customer_name=pj["name"]
+)
+
     # Initialize database
     db = DataBase()
 
@@ -87,9 +95,9 @@ def train_model_pipeline(pj: dict, check_old_model_age: bool = True,
 
         # Check if R^2 is better for old model
         if score_old_model > score_new_model * PENALTY_FACTOR_OLD_MODEL:
-            raise (RuntimeError(f"Old model is better than new model for {pj['name']}"))
+            logger.warning(f"Old model is better than new model for {pj['name']}")
         else:
-            print(
+            logger.info(
                 "New model is better than old model, continuing with training procces")
 
     # Report about the training procces
