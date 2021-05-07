@@ -171,19 +171,29 @@ class AbstractPredictionModel(ABC):
             raise ValueError("No historic load data available")
 
         # Find most extreme historic day (do not count today as it is incomplete)
-        rel_date = (
+        day_with_highest_load_date = (
             load[load.index.tz_localize(None).date != datetime.utcnow().date()]
             .idxmax()
             .load.date()
         )
-        dayprof = load[str(rel_date)].copy()
-        dayprof["time"] = dayprof.index.time
+        # generate datetime range of the day with the highest load
+        from_datetime = pd.Timestamp(day_with_highest_load_date, tz=load.index.tz)
+        till_datetime = from_datetime + pd.Timedelta("1 days")
+
+        # slice load dataframe, all rows for the day with the highest load
+        highest_daily_loadprofile = load.loc[
+            (load.index >= from_datetime) & (load.index < till_datetime)
+        ]
+
+        highest_daily_loadprofile["time"] = highest_daily_loadprofile.index.time
 
         forecast = pd.DataFrame(index=forecast_index)
         forecast["time"] = forecast.index.time
         forecast = (
             forecast.reset_index()
-            .merge(dayprof, left_on="time", right_on="time", how="outer")
+            .merge(
+                highest_daily_loadprofile, left_on="time", right_on="time", how="outer"
+            )
             .set_index("index")
         )
         forecast = forecast[["load"]].rename(columns=dict(load="forecast"))

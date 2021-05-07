@@ -126,7 +126,7 @@ class QuantileXGBPredictionModel(XGBPredictionModel):
         TODO: make hardcoded quantiles not hardcoded
 
         Args:
-            -forecast_index: pd.DatetimeIndex, used to determine new forecast timerange
+            - forecast_index: pd.DatetimeIndex, used to determine new forecast timerange
             - load: pd.DataFrame(DatetimeIndex, columns=[load])
 
         Returns:
@@ -135,6 +135,10 @@ class QuantileXGBPredictionModel(XGBPredictionModel):
 
         # Use default
         forecast = super().predict_fallback(forecast_index, load)
+
+        # Use the forecasted load since the actual load contains nan timestamps
+        # in the future
+        load = forecast[["forecast"]].rename(columns={"forecast": "load"})
 
         # Calculate quantiles per hour of day - list with items <1 can be copied from database
         quantiles = [x * 100 for x in [0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 0.95]]
